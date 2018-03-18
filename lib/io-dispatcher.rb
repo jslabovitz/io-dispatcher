@@ -2,9 +2,9 @@ module IO
 
   class Dispatcher
 
-    def initialize(timeout: nil)
-      @timeout = timeout
+    def initialize
       @io_handlers = [{}, {}, {}]
+      @timeout = nil
     end
 
     def add_io_handler(input: nil, output: nil, exception: nil, handler: nil, &block)
@@ -19,6 +19,7 @@ module IO
     end
 
     def set_timeout_handler(timeout, &block)
+      @timeout = timeout
       @timeout_handler = block
     end
 
