@@ -18,6 +18,17 @@ class IO
       @io_handlers[mode][io] = handler || block
     end
 
+    def remove_io_handler(input: nil, output: nil, exception: nil)
+      mode, io = if input
+        [0, input]
+      elsif output
+        [1, output]
+      elsif exception
+        [2, exception]
+      end
+      @io_handlers[mode].delete(io)
+    end
+
     def set_timeout_handler(timeout, &block)
       @timeout = timeout
       @timeout_handler = block
