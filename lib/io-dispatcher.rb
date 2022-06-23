@@ -34,9 +34,12 @@ class IO
       @timeout_handler = block
     end
 
-    def run
+    def run(&block)
       loop do
-        if (ready = IO.select(*@io_handlers.map(&:keys), @timeout))
+        yield if block_given?
+        arrays = @io_handlers.map(&:keys)
+        break if !@timeout && arrays.flatten.empty?
+        if (ready = IO.select(*arrays, @timeout))
           ready.each_with_index do |mode, i|
             mode.each { |io| @io_handlers[i][io].call(io) }
           end
