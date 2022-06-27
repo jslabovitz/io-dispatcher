@@ -41,7 +41,9 @@ class IO
         break if !@timeout && arrays.flatten.empty?
         if (ready = IO.select(*arrays, @timeout))
           ready.each_with_index do |mode, i|
-            mode.each { |io| @io_handlers[i][io].call(io) }
+            mode.each do |io|
+              (handler = @io_handlers[i][io]) && handler.call(io)
+            end
           end
         else
           @timeout_handler.call if @timeout_handler
