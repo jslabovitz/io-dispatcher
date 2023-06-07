@@ -8,25 +8,24 @@ class IO
     end
 
     def add_io_handler(input: nil, output: nil, exception: nil, handler: nil, &block)
-      mode, io = if input
-        [0, input]
-      elsif output
-        [1, output]
-      elsif exception
-        [2, exception]
-      end
-      @io_handlers[mode][io] = handler || block
+      handler ||= block
+      set_io_handler(0, input, handler)     if input
+      set_io_handler(1, output, handler)    if output
+      set_io_handler(2, exception, handler) if exception
     end
 
     def remove_io_handler(input: nil, output: nil, exception: nil)
-      mode, io = if input
-        [0, input]
-      elsif output
-        [1, output]
-      elsif exception
-        [2, exception]
+      set_io_handler(0, input, nil)     if input
+      set_io_handler(1, output, nil)    if output
+      set_io_handler(2, exception, nil) if exception
+    end
+
+    def set_io_handler(mode, io, handler)
+      if handler
+        @io_handlers[mode][io] = handler
+      else
+        @io_handlers[mode].delete(io)
       end
-      @io_handlers[mode].delete(io)
     end
 
     def set_timeout_handler(timeout, &block)
