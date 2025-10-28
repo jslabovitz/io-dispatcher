@@ -34,7 +34,8 @@ class IO
     end
 
     def run(&block)
-      loop do
+      @stop = false
+      until @stop
         yield if block_given?
         arrays = @io_handlers.map(&:keys)
         break if !@timeout && arrays.flatten.empty?
@@ -48,6 +49,10 @@ class IO
           @timeout_handler.call if @timeout_handler
         end
       end
+    end
+
+    def stop
+      @stop = true
     end
 
   end
