@@ -5,6 +5,7 @@ class IO
     def initialize
       @io_handlers = [{}, {}, {}]
       @timeout = nil
+      @jobs = []  # array of [Float run_at, Proc], kept sorted
     end
 
     def add_io_handler(input: nil, output: nil, exception: nil, handler: nil, &block)
@@ -33,26 +34,56 @@ class IO
       @timeout_handler = block
     end
 
+    def schedule(after: nil, &block)
+      run_at = clock_time + (after || 0)
+      @jobs << [run_at, block]
+      @jobs.sort_by!(&:first)
+    end
+
     def run(&block)
       @stop = false
       until @stop
         yield if block_given?
+        run_jobs!
         arrays = @io_handlers.map(&:keys)
         break if !@timeout && arrays.flatten.empty?
-        if (ready = IO.select(*arrays, @timeout))
+        timeout = effective_timeout
+        if (ready = IO.select(*arrays, timeout))
           ready.each_with_index do |mode, i|
             mode.each do |io|
               (handler = @io_handlers[i][io]) && handler.call(io)
             end
           end
-        else
-          @timeout_handler.call if @timeout_handler
+        elsif @timeout && timeout >= @timeout
+          @timeout_handler&.call
         end
       end
     end
 
     def stop
       @stop = true
+    end
+
+    private
+
+    def run_jobs!
+      now = clock_time
+      while @jobs.first && @jobs.first[0] <= now
+        _, job = @jobs.shift
+        job.call
+      end
+    end
+
+    def effective_timeout
+      return @timeout if @jobs.empty?
+      now = clock_time
+      secs = [@jobs.first[0] - now, 0].max
+      # Use whichever wakes us up sooner: the next job, or the user's timeout.
+      @timeout ? [secs, @timeout].min : secs
+    end
+
+    def clock_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
   end
